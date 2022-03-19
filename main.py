@@ -5,6 +5,7 @@ from utils import utils
 import os
 import sys
 import argparse
+import matplotlib.pyplot as plt 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_disjoint", type=int, default=5,
@@ -75,16 +76,110 @@ def split_data(data):
  
   return split 
 
-def main():
+def plot(mean):
+  for degree in mean.keys():
+    all_mean = mean[degree]
+    x, y, e = [], [], []
+    for key, val in all_mean.items():
+      #x.append(key)
+      x.append(1)
+      y.append(val['mean'])
+      e.append(val['std'])
+    plt.errorbar(x, y, e, fmt = 'o', color = 'black', 
+              linestyle='None', ecolor = 'lightblue',
+              capsize=5)
+    plt.ylim(min(y) - 0.05, max(y) + 0.05)
+    plt.xlabel("C")
+    plt.ylabel("Mean Square Error")
+    plt.title(f"Cross-validation error for polynomial kernel degree {degree}")
+    #plt.yscale("log")
+    plt.savefig(f"./{degree}.jpg")
+    plt.clf()
+ 
+def question3_2(train, test, best_param):
+  c_param = best_param["C"]
+  degree = range(1, 9)
+  #degree = [1, 2]
+  mse = {}
+  dataloader = split_data(train)
+  loss = np.inf
+  best_param = {"degree": None, "C": None}
+  for d_param in degree:
+    mse[d_param] = {}
+    cross_val = []
+    acc_val = []
+    num_support_vec = []
+    for split_train in dataloader:
+      train_data = split_train["train"]
+      test_data = split_train["test"]
+      options = f"-r {c_param} -d {d_param} -t 1 -q"
+      m = svm_train(train_data["labels"], train_data["features"], options)
+      p_label, p_acc, p_val = svm_predict(test_data["labels"], test_data['features'], m, "-q")
+      cross_val.append(p_acc[1])
+      acc_val.append(p_acc[0])
+      if loss > p_acc[1]:
+        loss = p_acc[1] 
+        best_param["degree"] = d_param
+        best_param["C"] = c_param
 
-  train, test = read_data()
-  C = [3**k for k in range(-2, 3)]
-  for c_param in C:
-    for split_train in split_data(train):
-      m = svm_train(split_train['label'], split_train['features'], f'-c {c_param} -t 1')
-      p_label, p_acc, p_val = svm_predict(split_train['label'], split_train['features'], m)
-  #print(p_label)
+      _, _, p_val = svm_predict(train_data["labels"], train_data['features'], m, "-q")
+      num_support_vec.append(np.sum((np.abs(p_val) == 1.0).float()))
+      
+    #print(c_param, p_acc[1])
+    cross_val = np.array(cross_val)
+    acc_val = np.array(acc_val)
+    mse[d_param] = {"mean": np.mean(cross_val), 
+                    "std": np.std(cross_val),
+                    "acc": np.mean(acc_val),
+                    "num_support_vec": np.mean(num_support_vec)}
+  print(best_param)
+  print('domme')
   exit()
+def question3_1(train, test):
+  C = 3** np.linspace(2, 15, 10) 
+  #print(C)
+  degree = [1, 2, 3, 4, 5]
+  #degree = [1, 2]
+  mse = {}
+  dataloader = split_data(train)
+  loss = np.inf
+  best_param = {"degree": None, "C": None}
+  for d_param in degree:
+    mse[d_param] = {}
+    for c_param in C:
+      cross_val = []
+      acc_val = []
+      for split_train in dataloader:
+        train_data = split_train["train"]
+        test_data = split_train["test"]
+        options = f"-c {c_param} -d {d_param} -t 1 -q"
+        m = svm_train(train_data["labels"], train_data["features"], options)
+        p_label, p_acc, p_val = svm_predict(test_data["labels"], test_data['features'], m, "-q")
+        cross_val.append(p_acc[1])
+        acc_val.append(p_acc[0])
+        if loss > p_acc[1]:
+          loss = p_acc[1] 
+          best_param["degree"] = d_param
+          best_param["C"] = c_param
+      #print(c_param, p_acc[1])
+      cross_val = np.array(cross_val)
+      acc_val = np.array(acc_val)
+      mse[d_param][c_param] = {"mean": np.mean(cross_val), 
+                               "std": np.std(cross_val),
+                               "acc": np.mean(acc_val)}
+
+  plot(mse)
+  return best_param
+
+#def question3_2():
+
+def main():
+  train, test = read_data()
+  best_param = question3_1(train, test)
+  print(best_param)
+  exit()
+  question3_2(train, test, best_param)
+
 if __name__ == "__main__":
   sys.excepthook = utils.colored_hook(os.path.dirname(os.path.realpath(__file__)))
   main()
