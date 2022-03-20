@@ -45,7 +45,7 @@ def split_data(data, num_disjoint):
   split = []
   for f_id, s_id, t_id in zip(first_train_idx, second_train_idx, test_idx):
     out = {"train": {},
-         "test": {}}
+         "val": {}}
     train_features, train_labels = [], []
     if f_id is not None:
       train_features.append(data["features"][f_id[0]: f_id[1]])
@@ -61,8 +61,8 @@ def split_data(data, num_disjoint):
 
     out["train"]["features"] = train_features
     out["train"]["labels"] = train_labels
-    out["test"]["features"] = test_features
-    out["test"]["labels"] = test_labels
+    out["val"]["features"] = test_features
+    out["val"]["labels"] = test_labels
    
     split.append(out)
  
