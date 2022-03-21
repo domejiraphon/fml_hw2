@@ -7,7 +7,6 @@ import sys
 def read_data():
   # reading csv files
   data =  pd.read_csv('./data/abalone.data').to_numpy()
-  
   gender2vec = np.array([[1., 0., 0.]]) * (data[:, :1] == "M").astype(np.float32) + \
                np.array([[0., 1., 0.]]) * (data[:, :1] == "I").astype(np.float32) + \
                np.array([[0., 0., 1.]]) * (data[:, :1] == "F").astype(np.float32) 
@@ -67,3 +66,8 @@ def split_data(data, num_disjoint):
     split.append(out)
  
   return split 
+
+def filter_data(data, num_dataset=None):
+  sel_idx = np.random.randint(0, data["features"].shape[0], num_dataset)
+  return {"features": data["features"][sel_idx],
+          "labels": data["labels"][sel_idx]}
