@@ -18,7 +18,7 @@ args = parser.parse_args()
 def question3(train, test):
   #global c_range
   c_range = np.linspace(-5, 20, 10)
-  c_range = np.linspace(-3, 3, 5)
+  c_range = np.linspace(-5, 5, 5)
   #c_range = np.linspace(-5, 5, 2)
   C = 3** c_range
   
