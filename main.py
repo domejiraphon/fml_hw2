@@ -17,10 +17,8 @@ args = parser.parse_args()
 
 def question3(train, test):
   #global c_range
-  c_range = np.linspace(-5, 20, 8)
-  #c_range = np.linspace(-5, 5, 2)
-  #C = 3** np.linspace(2, 15, 10) 
-  #C = 3** np.linspace(-5, 20, 5)
+  c_range = np.linspace(-5, 20, 10)
+
   C = 3** c_range
   
   #print(C)
@@ -128,11 +126,12 @@ def question5(train, test, best_param):
   
   visualized_utils.plot5(train_mse, test_mse, best_param, all_num_dataset)
 
-  
 def main():
   train, test = data_utils.read_data()
   best_param = question3(train, test)
+  print(best_param)
   best_param = question4(train, test, best_param)
+  print(best_param)
   question5(train, test, best_param)
 
 if __name__ == "__main__":
