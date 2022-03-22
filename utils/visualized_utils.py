@@ -67,7 +67,7 @@ def plot4(train_error, test_error, degree):
               capsize=5)
       plt.plot(x, num)
       plt.xlabel(r"Degree")
-      plt.ylabel(r"Mean Square Error")
+      plt.ylabel(r"Number of support vectors")
       plt.title(r"Number of suppport vectors for polynomial kernel")
       im_path = f"support.jpg"
       plt.xticks(x, xtick_label)
