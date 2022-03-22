@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np 
 import os
 import sys
-
+import torch
 
 def read_data():
   # reading csv files
@@ -30,7 +30,7 @@ def read_data():
   
   return train, test 
 
-def split_data(data, num_disjoint):
+def split_data(data, num_disjoint, tensor=False):
   block_range = int(data['features'].shape[0]/num_disjoint)
   idx = [i for i in range(0, data['features'].shape[0], 
                    block_range)]
@@ -57,11 +57,14 @@ def split_data(data, num_disjoint):
     train_labels = np.concatenate(train_labels, 0)
     test_features = data["features"][t_id[0]: t_id[1]]
     test_labels = data["labels"][t_id[0]: t_id[1]]
-
     out["train"]["features"] = train_features
     out["train"]["labels"] = train_labels
     out["val"]["features"] = test_features
     out["val"]["labels"] = test_labels
+    if tensor:
+      for typ in out.keys():
+        for feat in out[typ].keys():
+          out[typ][feat] = torch.from_numpy(out[typ][feat].astype(np.float32)).float().to("cuda")
    
     split.append(out)
  

@@ -90,7 +90,7 @@ def question4(train, test, best_param):
         best_param["C"] = best_c
       _, _, p_val = svm_predict(train_data["labels"], train_data['features'], m, "-q")
       p_val = np.array(p_val)
-      num_support_vec.append(np.sum((np.abs(np.abs(p_val) - 1.0) < 1e-3).astype(np.int64)))
+      num_support_vec.append(np.sum((np.abs(np.abs(p_val) - 1.0) < 1e-2).astype(np.int64)))
       
     cross_val = np.array(cross_val)
     test_val = np.array(test_val)
