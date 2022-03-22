@@ -18,7 +18,7 @@ args = parser.parse_args()
 def question3(train, test):
   #global c_range
   c_range = np.linspace(-5, 20, 10)
-  c_range = np.linspace(-5, 5, 5)
+  c_range = np.linspace(-3, 3, 5)
   #c_range = np.linspace(-5, 5, 2)
   C = 3** c_range
   
@@ -138,7 +138,7 @@ def main():
 
   best_param = question4(train, test, best_param)
   print(f"q4 {best_param}")
-  exit()
+  
   question5(train, test, best_param)
 
 if __name__ == "__main__":
