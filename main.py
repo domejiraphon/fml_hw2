@@ -12,21 +12,22 @@ from utils import visualized_utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_disjoint", type=int, default=5,
-              help="Number of epoch to train")
+              help="Number of cross vallidation set")
 args = parser.parse_args()
 
 def question3(train, test):
-  #global c_range
-  c_range = np.linspace(-5, 20, 10)
+  ''' Question 3
+    Args:
+      train: a dictionary of training data composed of 
+            features [3133, 10] and label [3133]
+      test: a dictionary of test data composed of 
+            features [1044, 10] and label [1044]
+    Returns:
+      plot the graph in ./plot_question3 folder
+  '''
   c_range = np.linspace(-3, 3, 5)
-  #c_range = np.linspace(-5, 5, 2)
   C = 3** c_range
-  
-  #print(C)
   degree = [1, 2, 3, 4, 5]
-  
-  #degree = [2]
-  #degree = [1, 2]
   mse = {}
   dataloader = data_utils.split_data(train, args.num_disjoint)
   loss = np.inf
@@ -44,8 +45,7 @@ def question3(train, test):
         p_label, p_acc, p_val = svm_predict(val_data["labels"], val_data['features'], m, "-q")
         cross_val.append(p_acc[1])
         acc_val.append(p_acc[0])
-        
-      #print(c_param, p_acc[1])
+
       cross_val = np.array(cross_val)
       acc_val = np.array(acc_val)
       if loss > np.mean(cross_val):
@@ -60,9 +60,18 @@ def question3(train, test):
   return best_param
 
 def question4(train, test, best_param):
+  ''' Question 4
+    Args:
+      train: a dictionary of training data composed of 
+            features [3133, 10] and label [3133]
+      test: a dictionary of test data composed of 
+            features [1044, 10] and label [1044]
+      best_param: a dictionary contains C^* from the question 3
+    Returns:
+      plot the graph in ./plot_question4 folder
+  '''
   best_c = best_param['C']
   degree = range(1, 11)
-  #degree = [1, 2]
   train_mse, test_mse = {}, {}
   dataloader = data_utils.split_data(train, args.num_disjoint)
   loss = np.inf
@@ -114,6 +123,16 @@ def question4(train, test, best_param):
   return best_param
   
 def question5(train, test, best_param):
+   ''' Question 5
+    Args:
+      train: a dictionary of training data composed of 
+            features [3133, 10] and label [3133]
+      test: a dictionary of test data composed of 
+            features [1044, 10] and label [1044]
+      best_param: a dictionary contains C^* from the question 4
+    Returns:
+      plot the graph in ./plot_question5 folder
+  '''
   all_num_dataset = range(train["features"].shape[1], train["features"].shape[0], 300)
   train_mse, test_mse = {}, {}
   for num_dataset in all_num_dataset:
@@ -134,11 +153,7 @@ def question5(train, test, best_param):
 def main():
   train, test = data_utils.read_data()
   best_param = question3(train, test)
-  print(f"q3 {best_param}")
-
   best_param = question4(train, test, best_param)
-  print(f"q4 {best_param}")
-  
   question5(train, test, best_param)
 
 if __name__ == "__main__":

@@ -11,47 +11,25 @@ from utils import data_utils
 from utils import visualized_utils 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--lr', type=float, default=0.1)
-parser.add_argument('--epochs', type=int, default=150)
+parser.add_argument('--lr', type=float, default=0.1,
+            help="learning rate for model parameters")
+parser.add_argument('--epochs', type=int, default=150,
+            help="Number of epochs")
 parser.add_argument("--num_disjoint", type=int, default=5,
-              help="Number of epoch to train")
+              help="Number of cross validation set")
 args = parser.parse_args()
 
-class Sparse_svm2(nn.Module):
-  def __init__(self, shape):
-    super(Sparse_svm, self).__init__()
-    alpha = torch.empty((shape, 1)).uniform_(0, 1)
-    xi = torch.empty((shape, 1)).uniform_(0, 1)
-    b = torch.empty((1)).uniform_(-1, 1)
-    
-    self.alpha = nn.Parameter(alpha)
-    self.xi = nn.Parameter(xi)
-    self.b = nn.Parameter(b)
-
-    self.relu = nn.ReLU()
-
-  def forward(self, features, c, degree, C, lambd):
-    x_i = features["features"]
-    y_i = features["labels"]
-
-    self.alpha = self.relu(self.alpha)
-    self.xi = self.relu(self.xi)
-    kernel = kernel_fn(x_i, x_j, coeff, degree)
-    left_cont = y_i[:, None] * (torch.sum(self.alpha * y_j[:, None] * kernel, dim=1, keepdims=True) + self.b)
-    right_cont = 1 - self.xi 
-    loss = 1/2 * torch.sum(torch.abs(self.alpha)) + \
-           C * torch.sum(self.xi) + \
-           lambd * torch.mean(left_cont - right_cont)
-    return loss 
-
-  def kernel_fn(self, x_i, x_j, coeff, degree):
-    #x_i, x_j [n, d]
-    kernel = (x_i @ x_j.T + coeff) ** degree
-    
-    return kernel
-
 class Sparse_svm(nn.Module):
+   ''' Model for objective function
+    Args:
+      shape: shape to determine the number of traning set
+  '''
   def __init__(self, shape):
+    '''
+      alpha: tensor size [samples, 1]
+      xi: tensor size [samples, 1]
+      b: tensor size [1]
+    '''
     super(Sparse_svm, self).__init__()
     alpha = torch.empty((shape, 1)).uniform_(0, 1)
     xi = torch.empty((shape, 1)).uniform_(0, 1)
@@ -64,6 +42,17 @@ class Sparse_svm(nn.Module):
     self.relu = nn.ReLU()
 
   def forward(self, features, coeff, degree, C, lambd):
+    ''' Question 6
+    Args:
+      features: a dictionary of data composed of 
+            features and label 
+      coeff: coefficient in polynomial kernel
+      degree: degree for polynomial kernel
+      C: hyperparameters C in objective function
+      lambd: hyperparameters for forcing the constraint
+    Returns:
+      loss value
+    '''
     #x_i, x_j [n, 10]
     #y_i, y_j [n]
     x_i = x_j = features["features"]
@@ -91,6 +80,18 @@ class Sparse_svm(nn.Module):
     return kernel
 
 def inference(model, train_set, test_set, C, coeff, degree):
+  ''' Inference
+  Args:
+    model: model to inference
+    train_set: training data
+    test_set: test data
+    degree: degree for polynomial kernel
+    coeff: coefficient in polynomial kernel
+    C: hyperparameters C in objective function
+    lambd: hyperparameters for forcing the constraint
+  Returns:
+    loss value
+  '''
   x_i = train_set["features"]
   x_j = test_set["features"]
   y_i = train_set["labels"]
@@ -107,6 +108,14 @@ def inference(model, train_set, test_set, C, coeff, degree):
   return loss 
 
 def get_train_test_loss(train_set, test_set, best_param):
+  ''' 
+  Args:
+    train_set: training data
+    test_set: test data
+    best_param: best C* parameters from grid search
+  Returns:
+    plot graph and store it in ./plot_question6
+  '''
   dataloader = data_utils.split_data(train_set, args.num_disjoint, tensor=True)
   degree = [1, 2, 3, 4, 5]
   train_mse = {}
@@ -144,6 +153,13 @@ def get_train_test_loss(train_set, test_set, best_param):
   exit()
 
 def train(train_set, test_set):
+  ''' Train
+  Args:
+    train_set: training data
+    test_set: test data
+  Returns:
+    best parameters
+  '''
   torch.manual_seed(0)
   
   dataloader = data_utils.split_data(train_set, args.num_disjoint, tensor=True)

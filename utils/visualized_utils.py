@@ -112,11 +112,10 @@ def plot6(train_error, test_error, degree):
       e.append(all_mean["loss_std"])
 
     x = np.arange(1, len(y)+1)
-    """
     plt.errorbar(x, y, e, fmt = 'o', color = 'black', 
               linestyle='None', ecolor = 'lightblue',
               capsize=5)
-    """
+    
     plt.ylim(min(y) - 0.05, max(y) + 0.05)
     plt.plot(x, y)
     plt.xlabel(r"Degree")
