@@ -25,3 +25,4 @@ def merge_q4(path):
 merge_q3()
 merge_q4(path4)
 merge_q4(path5)
+merge_q4("./plot_question6")

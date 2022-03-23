@@ -81,9 +81,8 @@ class Sparse_svm(nn.Module):
     num_force_cont = torch.sum((self.relu(- (left_cont - right_cont)) < 1e-3).float())
 
     const = lambd * torch.sum(self.relu(- (left_cont - right_cont)))
-    loss1 =  1/2 * torch.sum(torch.abs(alpha))
-    loss2 = C * torch.sum(xi) 
-    return loss, const, num_force_cont, loss1, loss2
+  
+    return loss, const, num_force_cont
 
   def kernel_fn(self, x_i, x_j, coeff, degree):
     #x_i, x_j [n, d]
@@ -98,19 +97,52 @@ def inference(model, train_set, test_set, C, coeff, degree):
   y_j = test_set["labels"]
   alpha = model.relu(model.alpha)
   xi = model.relu(model.xi)
-  print(alpha)
-  print(xi)
-  exit()
+
   kernel = model.kernel_fn(x_i, x_j, coeff, degree)
   
   weight = torch.sum(alpha * y_i[:, None] * kernel, dim=0, keepdims=True)
-  print(weight)
+  num_neg = (y_j[None] * (weight + model.b) < 0.0).float()
+  loss = torch.mean(num_neg)
+ 
+  return loss 
+
+def get_train_test_loss(train_set, test_set, best_param):
+  dataloader = data_utils.split_data(train_set, args.num_disjoint, tensor=True)
+  degree = [1, 2, 3, 4, 5]
+  train_mse = {}
+  test_mse = {}
+  for degree_param in degree:
+    cross_val, test_val = [], []
+    for split_train in dataloader:
+      train_data = split_train["train"]
+      val_data = split_train["val"]
+      model = Sparse_svm(shape=train_data["features"].shape[0]).cuda()
+      optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+      for i in range(args.epochs):
+        optimizer.zero_grad()
+        loss, const, num_force_cont = model(train_data, 
+                coeff=1, degree=degree_param, C=best_param["C"], lambd=100)
+        loss.backward()
+        optimizer.step()
+      with torch.no_grad():
+        cross_loss = inference(model, train_data, val_data, C=best_param["C"],
+                        coeff=1, degree=degree_param)
+        test_loss = inference(model, train_data, test_set, C=best_param["C"],
+                        coeff=1, degree=degree_param)
+      cross_val.append(cross_loss)
+      test_val.append(test_loss)
+    
+    cross_val = torch.tensor(cross_val)
+    test_val = torch.tensor(test_val)
+    train_mse[degree_param] = {"loss_mean": torch.mean(cross_val),
+                    "loss_std": torch.std(cross_val),}
+
+    test_mse[degree_param] = {"loss_mean": torch.mean(test_val),
+                    "loss_std": torch.std(test_val)}
+
+  visualized_utils.plot6(train_mse, test_mse, degree)
   exit()
-  loss = y_j[None] * (weight + model.b)
-  
-  #b = mask * (y_i - torch.sum(alpha * y_i[:, None] * model.kernel_fn(x_i, x_i, coeff, degree)))
-  print(loss.shape)
-  exit()
+
 def train(train_set, test_set):
   torch.manual_seed(0)
   
@@ -131,42 +163,23 @@ def train(train_set, test_set):
         for i in range(args.epochs):
           optimizer.zero_grad()
          
-          loss, const, num_force_cont, loss1, loss2 = model(train_data, 
+          loss, const, num_force_cont = model(train_data, 
                   coeff=1, degree=degree_param, C=c_param, lambd=10)
           all_loss = loss + const
-          print(loss, const)
-          print(model.alpha)
+          
           all_loss.backward()
           optimizer.step()
-        exit()
+
         f_loss.append(loss)
-        loss = inference(model, train_data, val_data, C=c_param,
-                        coeff=1, degree=degree_param)
-        with torch.no_grad():
-          loss, const, num_force_cont = model(train_data, 
-                  coeff=1, degree=degree_param, C=c_param, lambd=100)
-          print(loss)
-          loss, const, num_force_cont = model(val_data, 
-                  coeff=1, degree=degree_param, C=c_param, lambd=100)
-          print(loss)
-          exit()
       f_loss = torch.tensor(f_loss)
       if torch.mean(f_loss) < best_param["loss"]:
         best_param["degree"] = degree_param
         best_param["C"] = c_param
         best_param["loss"] = torch.mean(f_loss) 
         best_param["num_constraint"] = num_force_cont
-
-  print(model.alpha)
   print(best_param)
-  train_data = split_train["train"]
-  val_data = split_train["val"]
-  model = Sparse_svm(shape=train_data["features"].shape[0]).cuda()
   
-  for i in range(args.epochs):
-    optimizer.zero_grad()
-    loss, const, num_force_cont = model(train_data, 
-            coeff=1, degree=degree_param, C=c_param, lambd=100)
+  get_train_test_loss(train_set, test_set, best_param)
   exit()
 def np2tensor(dataloader):
   return {"features": torch.from_numpy(dataloader["features"].astype(np.float32)).float().to(args.device),
@@ -175,7 +188,7 @@ def main():
   args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   train_dataloader, test_dataloader = data_utils.read_data()
   
-  train(train_dataloader, test_dataloader)
+  train(train_dataloader, np2tensor(test_dataloader))
   
 
 if __name__ == "__main__":
